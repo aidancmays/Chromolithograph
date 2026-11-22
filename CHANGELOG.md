@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.2] - 2026-11-22
+
+- Fix: grain and paper on the sky were drawn out in radial streaks (up to 1.7 times) round the zenith and where
+  the triplanar planes meet. The sky's planes now lay texture out by angle from their axis instead of flat, so the
+  grain keeps close to its shape everywhere on the sky. Surfaces are unchanged.
+
 ## [0.2.1] - 2026-11-22
 
 - Fix: surfaces seen at a grazing angle (a floor towards the horizon, a wall running away from the camera) no longer

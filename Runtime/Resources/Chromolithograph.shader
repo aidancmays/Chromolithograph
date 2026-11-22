@@ -264,6 +264,15 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
             float3 w = pow(abs(n), 6.0);
             s.weights = w / max(dot(w, 1.0), 1e-5);
             s.uvX = s.pos.zy; s.uvY = s.pos.xz; s.uvZ = s.pos.xy;
+            // On the sky's sphere a flat projection squeezes the texture towards the edge of each plane's share (a
+            // point at angle a from the axis lands at sin(a)), so the grain was drawn out radially, up to 1.7 times,
+            // in streaks round the zenith and the corners between planes. Lay each plane's distance from its axis
+            // out by angle instead (a / sin(a)), so the grain stays within about a fifth of its shape across the sky.
+            float3 axial = saturate(abs(n));
+            float3 across = sqrt(max(1.0 - axial * axial, 0.0));
+            float3 unsqueeze = across > 1e-3 ? acos(axial) / max(across, 1e-3) : 1.0;
+            unsqueeze = lerp(1.0, unsqueeze, s.sky);
+            s.uvX *= unsqueeze.x; s.uvY *= unsqueeze.y; s.uvZ *= unsqueeze.z;
             s.gradX = float4(ddx(s.uvX), ddy(s.uvX));
             s.gradY = float4(ddx(s.uvY), ddy(s.uvY));
             s.gradZ = float4(ddx(s.uvZ), ddy(s.uvZ));
