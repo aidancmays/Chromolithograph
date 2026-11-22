@@ -6,6 +6,9 @@
   fill with pools of dotted key-stone ink when Depth Gap is low. The outline's depth taps now sit symmetrically on
   whole texels around the pixel, so a flat surface's depth second difference is zero however steeply it is seen.
   Line widths, silhouettes and real steps are unchanged.
+- Fix: bright, off-colour specks in deep shadow. Granulation could push a full-density ink past full strength, which
+  turned a dark ink negative, and two negative inks multiplied back to a bright speck. An ink now darkens the paper
+  only as far as black.
 
 ## [0.2.0] - 2026-11-22
 

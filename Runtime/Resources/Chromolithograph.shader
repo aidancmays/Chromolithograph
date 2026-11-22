@@ -847,8 +847,11 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
                     float ink = InkAmount(coverage, grain, strength);
                     // Edge pooling: a wet wash dries darker at its rim, where the colour changes.
                     ink = saturate(ink * (1.0 + edge * _Wet.z));
-                    result *= lerp(1.0, _InkColor[i].rgb, ink * density);
-                    smooth *= lerp(1.0, _InkColor[i].rgb, coverage * density);
+                    // Granulation can push a full-density ink past 1, and a dark ink laid past full goes negative.
+                    // Two negative inks then multiply back to a bright, off-colour speck in the shadows, so an ink
+                    // can darken the paper only as far as black.
+                    result *= max(lerp(1.0, _InkColor[i].rgb, ink * density), 0.0);
+                    smooth *= max(lerp(1.0, _InkColor[i].rgb, coverage * density), 0.0);
                 }
             }
 
