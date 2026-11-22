@@ -1,0 +1,26 @@
+{
+  "name": "com.aidancmays.chromolithograph",
+  "version": "0.1.0",
+  "displayName": "Chromolithograph",
+  "description": "A URP renderer feature that prints the frame as a 19th-century chromolithograph: the image is separated into up to eight flat inks laid stone by stone on paper, with grain, hatching, key lines, wash, paper foxing, per-object print styles, and an optional corruption layer.",
+  "unity": "6000.3",
+  "documentationUrl": "",
+  "keywords": ["urp", "post-processing", "stylized", "npr", "renderer feature", "art style"],
+  "author": { "name": "Aidan" },
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "17.3.0",
+    "com.unity.inputsystem": "1.18.0"
+  },
+  "samples": [
+    {
+      "displayName": "Custom Shader",
+      "description": "An unlit shader with ChromoHints and ChromoMotion passes, and a component that gives it a print style id.",
+      "path": "Samples~/Custom Shader"
+    },
+    {
+      "displayName": "Sky Hook",
+      "description": "Drives the print's sky colours and sun direction from the scene's sun light and two colours, for projects without their own sky system.",
+      "path": "Samples~/Sky Hook"
+    }
+  ]
+}
