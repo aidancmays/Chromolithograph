@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1] - 2026-11-22
+
+- Fix: surfaces seen at a grazing angle (a floor towards the horizon, a wall running away from the camera) no longer
+  fill with pools of dotted key-stone ink when Depth Gap is low. The outline's depth taps now sit symmetrically on
+  whole texels around the pixel, so a flat surface's depth second difference is zero however steeply it is seen.
+  Line widths, silhouettes and real steps are unchanged.
+
 ## [0.2.0] - 2026-11-22
 
 - Renderer feature: **Sky** and **Corruption** switches (both on by default, so existing setups are unchanged).

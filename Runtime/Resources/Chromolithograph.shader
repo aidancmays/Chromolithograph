@@ -472,7 +472,17 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
         {
             if (_Line1.x <= 0.0) return 0.0;
             float width = _Line1.x * lerp(1.0, 0.45, saturate(eyeDepth / _Line2.y));
-            float2 stepUv = UvFrom1080(float2(width, width));
+            // Depth is point sampled, so every tap lands on whole texels. Put the centre on its texel and step a whole
+            // number of texels either side, so the two neighbours always sit symmetrically about it. Left to round on
+            // their own, one neighbour could land a texel further out than the other; where depth changes fast from
+            // texel to texel (a surface seen at a grazing angle) that lopsided second difference read as a step, and
+            // the surface filled with pools of dotted ink that crawled as the line wobble moved.
+            // The reach rounds up or down by where uv sits inside its texel, so on average it is still the line
+            // width (as the free taps were) and the wobble still varies the stroke.
+            float2 texel = _CameraDepthTexture_TexelSize.xy;
+            float2 inTexel = frac(uv / texel);
+            uv = (floor(uv / texel) + 0.5) * texel;
+            float stepTexels = UvFrom1080(float2(width, width)).x / texel.x;
 
             bool skyC;
             float wC = InverseDepth(uv, skyC);
@@ -483,7 +493,8 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
             if (_Line3.x > 0.0) cC = ToSrgb(SampleColor(uv));
             [unroll] for (int k = 0; k < 4; k++)
             {
-                float2 o = dirs[k] * stepUv * (k < 2 ? 1.0 : 0.7071);
+                float reach = max(floor(stepTexels * (k < 2 ? 1.0 : 0.7071) + (k == 1 ? inTexel.y : inTexel.x)), 1.0);
+                float2 o = dirs[k] * texel * reach;
                 bool skyA, skyB;
                 float wA = InverseDepth(uv + o, skyA);
                 float wB = InverseDepth(uv - o, skyB);
