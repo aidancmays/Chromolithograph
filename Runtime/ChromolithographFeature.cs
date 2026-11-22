@@ -37,6 +37,12 @@ namespace Chromolithograph
         [Tooltip("Draw key lines inside portal views (cameras with post-processing off).")]
         public bool linesInPortalViews = true;
 
+        [Tooltip("Print the sky: pixels with nothing behind them get the Look's Sky settings, and ChromoSky's time-of-day styles, glow and horizon tint apply. Off = the sky prints as bare paper and ChromoSky is ignored (for projects with no visible sky).")]
+        public bool sky = true;
+
+        [Tooltip("Print corruption: ChromoCorrupted objects and the corruption map. Off = they are not gathered or drawn and the print has no corruption at all.")]
+        public bool corruption = true;
+
         [SerializeField, HideInInspector] Shader shader;
 
         [SerializeField, HideInInspector] Shader hintsShader;
@@ -102,7 +108,7 @@ namespace Chromolithograph
             if (!EnsureMaterial()) return;
             if (!linesOnly && type == CameraType.Game) ChromoStrip.PrintedFrame = Time.frameCount;
 
-            pass.Setup(material, hintsMaterial, motionMaterial, palette, look, linesOnly);
+            pass.Setup(material, hintsMaterial, motionMaterial, palette, look, linesOnly, sky, corruption);
             pass.ConfigureInput(ScriptableRenderPassInput.Depth | ScriptableRenderPassInput.Normal);
             pass.requiresIntermediateTexture = true;
             renderer.EnqueuePass(pass);
@@ -137,6 +143,8 @@ namespace Chromolithograph
             ChromoPalette palette;
             ChromoLook look;
             bool linesOnly;
+            bool skyOn = true;
+            bool corruptionOn = true;
 
             readonly Vector4[] inkColors = new Vector4[ChromoPalette.MaxInks];
             readonly Vector4[] inkParams = new Vector4[ChromoPalette.MaxInks];
@@ -222,8 +230,10 @@ namespace Chromolithograph
                 profilingSampler = new ProfilingSampler("Chromolithograph");
             }
 
-            public void Setup(Material material, Material hintsMaterial, Material motionMaterial, ChromoPalette palette, ChromoLook look, bool linesOnly)
+            public void Setup(Material material, Material hintsMaterial, Material motionMaterial, ChromoPalette palette, ChromoLook look, bool linesOnly, bool sky, bool corruption)
             {
+                skyOn = sky;
+                corruptionOn = corruption;
                 this.motionMaterial = motionMaterial;
                 this.material = material;
                 this.hintsMaterial = hintsMaterial;
@@ -253,7 +263,7 @@ namespace Chromolithograph
                 styleIds.Clear();
                 using (GatherStylesMarker.Auto()) drawCount = ChromoPrintStats.SkipStyles ? 0 : GatherStyles();
                 using (GatherSubjectsMarker.Auto()) drawCount = GatherSubjects(drawCount);
-                using (GatherCorruptedMarker.Auto()) drawCount = GatherCorrupted(drawCount);
+                if (corruptionOn) using (GatherCorruptedMarker.Auto()) drawCount = GatherCorrupted(drawCount);
                 using (FillMarker.Auto()) FillProperties(block, cameraData);
                 if (!linesOnly)
                 {
@@ -658,7 +668,7 @@ namespace Chromolithograph
             // the Look, then every setting blended).
             void FillSkySlot()
             {
-                bool live = ChromoSky.IsLive;
+                bool live = skyOn && ChromoSky.IsLive;
                 if (!live || (ChromoSky.Style == null && ChromoSky.StyleTo == null))
                 {
                     for (int k = 0; k < StyleVectorCount; k++) styleVectors[k][SkySlot] = styleVectors[k][0];
@@ -671,6 +681,8 @@ namespace Chromolithograph
                     for (int k = 0; k < StyleVectorCount; k++)
                         styleVectors[k][SkySlot] = Vector4.Lerp(skyFrom[k][0], skyTo[k][0], t);
                 }
+                // Sky off: the sky slot keeps the Look but lays no ink (Sky Ink 0 = bare paper).
+                if (!skyOn) styleVectors[1][SkySlot].w = 0f;
                 glowAmount = live && ChromoSky.GlowStyle != null ? Mathf.Clamp01(ChromoSky.GlowAmount) : 0f;
                 if (glowAmount > 0f)
                 {
@@ -711,6 +723,8 @@ namespace Chromolithograph
             // as 1080p pixels per texel (a facet is about 36.6 texels across); the blooms' as 1 / metres.
             void FillCorruption(MaterialPropertyBlock block)
             {
+                // Corruption off: override the corruption map's global "on" flag for this print, so it is skipped too.
+                if (!corruptionOn) block.SetVector(Ids.CorruptionMap1, Vector4.zero);
                 block.SetTexture(Ids.CrumpleTex, ChromoCrumple.Texture);
                 block.SetVector(Ids.Corrupt1, new Vector4(look.corruptDrain, look.corruptCrumple, Mathf.Max(look.corruptCrumplePixels, 1f) / 36.6f, look.corruptCreaseDark));
                 block.SetVector(Ids.Corrupt2, new Vector4(look.corruptCreaseLines, look.corruptFacets, Mathf.Max(look.corruptEdge, 0.01f), look.corruptBranching));
@@ -763,7 +777,7 @@ namespace Chromolithograph
                 FillCorruption(block);
                 // The sky's horizon colour for Fog Sky Tint (already display-linear); w = 0 while no sky is running.
                 Color horizon = ChromoSky.Horizon;
-                block.SetVector(Ids.Horizon, new Vector4(horizon.r, horizon.g, horizon.b, ChromoSky.IsLive ? 1f : 0f));
+                block.SetVector(Ids.Horizon, new Vector4(horizon.r, horizon.g, horizon.b, skyOn && ChromoSky.IsLive ? 1f : 0f));
                 block.SetVector(Ids.Sizes, new Vector4(ChromoPalette.SeparationSize, ChromoPalette.GrainSize, ChromoPalette.PaperSize, 0f));
 
                 float height = Mathf.Max(1f, cameraData.cameraTargetDescriptor.height);
@@ -837,6 +851,7 @@ namespace Chromolithograph
             public static readonly int CorruptAmount = Shader.PropertyToID("_ChromoCorruptAmount");
             public static readonly int CrumpleTex = Shader.PropertyToID("_CrumpleTex");
             public static readonly int Corrupt1 = Shader.PropertyToID("_Corrupt1");
+            public static readonly int CorruptionMap1 = Shader.PropertyToID("_ChromoCorruptionMap1");
             public static readonly int Corrupt2 = Shader.PropertyToID("_Corrupt2");
             public static readonly int Corrupt3 = Shader.PropertyToID("_Corrupt3");
             public static readonly int Corrupt4 = Shader.PropertyToID("_Corrupt4");

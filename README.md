@@ -29,7 +29,9 @@ project's `Packages/` folder instead (an embedded package).
    - warns about Bloom and Vignette, which fight the print look.
 2. Press Play. **F8** opens the debug panel (editor and development builds): print on/off, progressive proofs (stones
    printed one after another), one stone at a time, coverage, and the corruption view.
-3. Tune the print on the palette's **Look** (it is the base settings), and per area with a Volume:
+3. Projects without a visible sky or corruption can turn **Sky** and **Corruption** off on the renderer feature;
+   that skips their work and prints the sky as bare paper.
+4. Tune the print on the palette's **Look** (it is the base settings), and per area with a Volume:
    *Add Override > Chromolithograph* (only ticked settings replace the palette's).
 
 The feature asks URP for the depth and normals textures itself; nothing else needs switching on. The camera should
