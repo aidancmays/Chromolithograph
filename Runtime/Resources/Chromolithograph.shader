@@ -114,6 +114,19 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
         static int StyleId;         // mode (ChromoDebug.View), ink
         static float Subject;       // 1 where a ChromoSubject is drawn
         static float Corrupt;       // how corrupted this pixel's object is (0..1), before the feathered edge
+        // Fog (or anything else that hides the scene) can say how much of each pixel shows through: a global texture
+        // _ChromoVisibility (r: 1 = clear, 0 = hidden), used while _ChromoVisibilityOn is 1 (the print sets it back to 0
+        // after each frame). Where the scene is hidden, its lines, hatching and grain fade, leaving flat washes.
+        TEXTURE2D(_ChromoVisibility);
+        float _ChromoVisibilityOn;
+        static float Visible;       // how much of this pixel's surface shows through (1 = all)
+
+        void LoadVisible(float2 uv)
+        {
+            Visible = 1.0;
+            [branch] if (_ChromoVisibilityOn > 0.5)
+                Visible = saturate(SAMPLE_TEXTURE2D_LOD(_ChromoVisibility, chromo_linear_clamp_sampler, uv, 0).r);
+        }
 
         int StyleAt(float2 uv)
         {
@@ -615,7 +628,7 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
         {
             // Lines fade out with distance; past that (and in the sky) there is nothing to find. One return at the end,
             // since FXC warns about an uninitialised result when a branch returns early.
-            float fade = LineFade(eyeDepth);
+            float fade = LineFade(eyeDepth) * Visible;
             float result = 0.0;
             [branch] if (!sky && fade > 0.0)
             {
@@ -744,6 +757,7 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
             float2 uv = input.texcoord;
             LoadStyle(uv);
+            LoadVisible(uv);
             float3 original = SampleColor(uv);
 
             float raw = SampleSceneDepth(uv);
@@ -842,7 +856,7 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
                     float density = _InkColor[i].a * (1.0 - _Print2.x * mottle * 0.6);
                     // Granulation: pigment settles into the paper's tooth.
                     density *= 1.0 + (sheet.r - 0.5) * _Wet.w;
-                    float strength = saturate(lerp(_Print3.x, _Sky.y, space.sky) + _InkParams2[i].x);
+                    float strength = saturate(lerp(_Print3.x, _Sky.y, space.sky) + _InkParams2[i].x) * Visible;
                     // Grain only moves ink by the room on either side of the coverage, so at full coverage (or no
                     // grain strength) it can't change anything and isn't sampled.
                     float room = min(coverage, 1.0 - coverage) * strength;
@@ -855,7 +869,7 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
                     }
                     float ink = InkAmount(coverage, grain, strength);
                     // Edge pooling: a wet wash dries darker at its rim, where the colour changes.
-                    ink = saturate(ink * (1.0 + edge * _Wet.z));
+                    ink = saturate(ink * (1.0 + edge * _Wet.z * Visible));
                     // Granulation can push a full-density ink past 1, and a dark ink laid past full goes negative.
                     // Two negative inks then multiply back to a bright, off-colour speck in the shadows, so an ink
                     // can darken the paper only as far as black.
@@ -874,7 +888,7 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
                 // Even texture: swap some of the inks' own grain (which is strongest where several inks overlap at
                 // half coverage) for one shared tooth, so every colour carries about the same texture.
                 float3 inkTexture = result / safeSmooth;
-                float3 evenTexture = (1.0 + (0.5 - keyGrain) * _Hand.z).xxx;
+                float3 evenTexture = (1.0 + (0.5 - keyGrain) * _Hand.z * Visible).xxx;
                 result = smooth * correction * lerp(inkTexture, evenTexture, _Hand.y);
             }
 
@@ -908,7 +922,7 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
             {
                 float luma = SrgbLuma(wash);
                 float fill = 1.0 - smoothstep(_Line2.w, _Line2.w + _Fade.w, luma);
-                fill *= _Hatch.w * InkFade(1.0, eyeDepth, sky);
+                fill *= _Hatch.w * InkFade(1.0, eyeDepth, sky) * Visible;
                 shadowLaid = InkAmount(fill, keyGrain, 0.5);
                 result = lerp(result, sheetColor * _ShadowColor.rgb, shadowLaid);
             }
@@ -998,6 +1012,7 @@ Shader "Hidden/Chromolithograph/Chromolithograph"
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
             float2 uv = input.texcoord;
             LoadStyle(uv);
+            LoadVisible(uv);
             float3 original = SampleColor(uv);
             float raw = SampleSceneDepth(uv);
             bool sky = IsSky(raw);

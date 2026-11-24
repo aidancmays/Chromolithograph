@@ -432,6 +432,9 @@ namespace Chromolithograph
                     }
                     if (resources.cameraDepthTexture.IsValid()) builder.UseTexture(resources.cameraDepthTexture, AccessFlags.Read);
                     if (resources.cameraNormalsTexture.IsValid()) builder.UseTexture(resources.cameraNormalsTexture, AccessFlags.Read);
+                    // _ChromoVisibility, when fog (or anything else) shares how much of each pixel shows through.
+                    builder.UseAllGlobalTextures(true);
+                    builder.AllowGlobalStateModification(true);
                     builder.SetRenderAttachment(target, 0, AccessFlags.Write);
                     builder.SetRenderFunc((PassData d, RasterGraphContext context) =>
                     {
@@ -446,6 +449,8 @@ namespace Chromolithograph
                         }
                         d.block.SetVector(Ids.BlitScaleBias, new Vector4(1f, 1f, 0f, 0f));
                         context.cmd.DrawProcedural(Matrix4x4.identity, d.material, d.shaderPass, MeshTopology.Triangles, 3, 1, d.block);
+                        // Visibility is shared per camera, per frame: whoever shares it sets this again next time.
+                        context.cmd.SetGlobalFloat(Ids.VisibilityOn, 0f);
                     });
                 }
             }
@@ -809,6 +814,7 @@ namespace Chromolithograph
         {
             public static readonly int BlitTexture = Shader.PropertyToID("_BlitTexture");
             public static readonly int BlitScaleBias = Shader.PropertyToID("_BlitScaleBias");
+            public static readonly int VisibilityOn = Shader.PropertyToID("_ChromoVisibilityOn");
             public static readonly int InkColor = Shader.PropertyToID("_InkColor");
             public static readonly int InkParams = Shader.PropertyToID("_InkParams");
             public static readonly int InkParams2 = Shader.PropertyToID("_InkParams2");

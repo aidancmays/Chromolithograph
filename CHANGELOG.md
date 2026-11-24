@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2026-11-23
+
+- Visibility hook for fog: when another pass shares `_ChromoVisibility` (how much of each pixel shows through, with
+  `_ChromoVisibilityOn` = 1), hidden areas lose their key lines, hatching, grain, edge pooling and deep shadow fill
+  and print as flat washes. See the README's hooks.
+
 ## [0.2.2] - 2026-11-22
 
 - Fix: grain and paper on the sky were drawn out in radial streaks (up to 1.7 times) round the zenith and where

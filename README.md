@@ -93,6 +93,13 @@ These are static and optional; the print works without any of them.
   `_ChromoCorruptionMap` (R8, sampled in world XZ), `_ChromoCorruptionMap1` = (1 / window size in metres,
   window min x, window min z, 1 = on) and `_ChromoCorruptionMap2` = (window max x, window max z). The print takes the
   larger of that and the per-object `ChromoCorrupted` amount. Leave `_ChromoCorruptionMap1.w` at 0 to switch it off.
+- **Visibility (fog)**: a render pass that hides the scene (volumetric fog, smoke) can share how much of each pixel
+  still shows through, as a global texture `_ChromoVisibility` (R: 1 = clear, 0 = hidden) plus the global float
+  `_ChromoVisibilityOn` = 1, set before the print runs (in Render Graph: `SetGlobalTextureAfterPass` and
+  `SetGlobalFloat` on a pass with global state modification allowed). Where the scene is hidden its key lines,
+  hatching, grain, edge pooling and deep shadow fade, so it prints as flat washes of the fog's colour. The print sets
+  `_ChromoVisibilityOn` back to 0 after each camera, so it only applies while something shares it. The Miasma fog
+  package does this.
 - **`ChromoDebug`**: the debug view (`Mode`, `Ink`). A project with its own debug overlay can set
   `ChromoDebugPanel.AutoSpawn = false` before the first scene loads and call `ChromoDebugPanel.DrawControls()` from
   its own panel.

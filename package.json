@@ -1,6 +1,6 @@
 {
   "name": "com.aidancmays.chromolithograph",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "displayName": "Chromolithograph",
   "description": "A URP renderer feature that prints the frame as a 19th-century chromolithograph: the image is separated into up to eight flat inks laid stone by stone on paper, with grain, hatching, key lines, wash, paper foxing, per-object print styles, and an optional corruption layer.",
   "unity": "6000.3",
